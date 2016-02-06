@@ -20,7 +20,7 @@ from itsdangerous import URLSafeTimedSerializer
 RE_INVALID = re.compile("[\000-\037\t\r\x0b\x0c\ufeff]")
 
 logging.basicConfig(stream=sys.stderr, format='%(asctime)s [%(name)s:%(levelname)s] %(message)s',
-                    level=logging.DEBUG if sys.argv[-1] == '-d' else logging.INFO)
+                    level=logging.DEBUG if sys.argv[-1] == '-v' else logging.INFO)
 
 logger_botapi = logging.getLogger('botapi')
 logger_http = logging.getLogger('http')
