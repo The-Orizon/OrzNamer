@@ -308,6 +308,7 @@ if __name__ == '__main__':
     CFG, STATE = load_config()
     TGCLI = tgcli.TelegramCliInterface(CFG.tgclibin)
     TGCLI.ready.wait()
+    TGCLI.on_json = handle_update
     try:
         if not STATE.members:
             get_members()
