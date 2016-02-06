@@ -154,31 +154,34 @@ class HTTPHandler(http.server.BaseHTTPRequestHandler):
         path = urllib.parse.unquote_plus(path, errors='ignore')
         qs = path.split('?', 1)
         path = qs[0].split('#', 1)[0].rstrip()
-        if path != '/title':
-            return 404, '404 Not Found'
-        if len(qs) > 1:
-            query = urllib.parse.parse_qs(qs[1])
-        else:
-            query = {}
-        if 't' in query:
-            if 'n' in query:
-                newtitle = query['n'][0]
-                code, ret = change_title(query['t'][0], newtitle)
-                if code == 200:
-                    ret['title'] = newtitle
-                    ret['prefix'] = CFG.prefix
-                elif code != 403:
-                    ret['title'] = cut_title(STATE.title)
-                    ret['prefix'] = CFG.prefix
-                return code, json.dumps(ret)
+        if path == '/title':
+            if len(qs) > 1:
+                query = urllib.parse.parse_qs(qs[1])
             else:
-                uid = verify_token(query['t'][0])
-                if uid:
-                    return 200, json.dumps({'title': cut_title(STATE.title), 'prefix': CFG.prefix})
+                query = {}
+            if 't' in query:
+                if 'n' in query:
+                    newtitle = query['n'][0]
+                    code, ret = change_title(query['t'][0], newtitle)
+                    if code == 200:
+                        ret['title'] = newtitle
+                        ret['prefix'] = CFG.prefix
+                    elif code != 403:
+                        ret['title'] = cut_title(STATE.title)
+                        ret['prefix'] = CFG.prefix
+                    return code, json.dumps(ret)
                 else:
-                    return 403, json.dumps({'error': 'invalid token'})
+                    uid = verify_token(query['t'][0])
+                    if uid:
+                        return 200, json.dumps({'title': cut_title(STATE.title), 'prefix': CFG.prefix})
+                    else:
+                        return 403, json.dumps({'error': 'invalid token'})
+            else:
+                return 403, json.dumps({'error': 'token not specified'})
+        elif path == '/members':
+            return 200, json.dumps(STATE.members)
         else:
-            return 403, json.dumps({'error': 'token not specified'})
+            return 404, '404 Not Found'
 
     def do_GET(self):
         code, text = self.title_api(self.path)
