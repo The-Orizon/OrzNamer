@@ -275,9 +275,17 @@ def change_title(token, title):
     ret = TGCLI.cmd_rename_channel('%s#id%d' % (
         CFG.grouptype, CFG.groupid), CFG.prefix + title)
     if ret['result'] == 'SUCCESS':
-        uname = STATE.members[str(uid)]['username']
-        bot_api('sendMessage', chat_id=CFG.apigroupid,
-                text='@%s 修改了群组名称。' % uname)
+        user = STATE.members[str(uid)]
+        uname = user.get('username')
+        if uname:
+            bot_api('sendMessage', chat_id=CFG.apigroupid,
+                    text='@%s 修改了群组名称。' % uname)
+        else:
+            uname = user.get('first_name', '')
+            if 'last_name' in user:
+                uname += ' ' + user['last_name']
+            bot_api('sendMessage', chat_id=CFG.apigroupid,
+                    text='%s 修改了群组名称。' % uname)
         del STATE.tokens[str(uid)]
         STATE.title = CFG.prefix + title
         logging.info('@%s changed title to %s' % (uname, STATE.title))
