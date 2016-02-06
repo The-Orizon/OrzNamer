@@ -42,7 +42,7 @@ function GotResult(result, code, newname) {
 			BackButtonClick();
 		} else {
 			document.getElementById('newname').value = d['title'];
-			document.getElementById('prefix').value = d['prefix'];
+			document.getElementById('prefix').textContent = d['prefix'];
 		}
 	} else if (code == 403) {
 		alert('STUB: 错误：凭据无效');

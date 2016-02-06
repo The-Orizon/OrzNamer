@@ -10,6 +10,8 @@ import socket
 import logging
 import requests
 import threading
+import posixpath
+import mimetypes
 import http.server
 import socketserver
 import urllib.parse
@@ -76,12 +78,11 @@ def getupdates():
 
 def processmsg(d):
     logger_botapi.debug('Msg arrived: %r' % d)
-    uid = d['update_id']
     if 'message' in d:
         msg = d['message']
         if msg['chat']['type'] == 'private' and msg.get('text', '').startswith('/t'):
-            bot_api('sendMessage', chat_id=msg['chat'][
-                    'id'], text=CFG.url + get_token(msg['from']['id']))
+            bot_api('sendMessage', chat_id=msg['chat']['id'],
+                    text=CFG.url + get_token(msg['from']['id']))
             logger_botapi.info('Sent a token to %s' % msg['from'])
 
 # Cli bot
@@ -181,18 +182,58 @@ class HTTPHandler(http.server.BaseHTTPRequestHandler):
         elif path == '/members':
             return 200, json.dumps(STATE.members)
         else:
-            return 404, '404 Not Found'
+            return None, None
 
     def do_GET(self):
         code, text = self.title_api(self.path)
-        text = text.encode('utf-8')
+        if code is None:
+            fn = self.translate_path(CFG.staticdir, self.path, 'index.html')
+            if os.path.isfile(fn):
+                code, text = 200, open(fn, 'rb').read()
+                ctype = mimetypes.guess_type(fn)[0]
+            else:
+                code, text = 404, b'404 Not Found'
+                ctype = 'text/plain'
+        else:
+            text = text.encode('utf-8')
+            ctype = 'application/json'
         self.send_response(code)
         length = len(text)
         self.log_request(code, length)
         self.send_header('Content-Length', length)
-        self.send_header('Content-Type', 'application/json')
+        self.send_header('Content-Type', ctype)
         self.end_headers()
         self.wfile.write(text)
+
+    def translate_path(self, base, path, index=''):
+        """Translate a /-separated PATH to the local filename syntax.
+
+        Components that mean special things to the local file system
+        (e.g. drive or directory names) are ignored.  (XXX They should
+        probably be diagnosed.)
+
+        """
+        # abandon query parameters
+        path = path.split('?',1)[0]
+        path = path.split('#',1)[0]
+        # Don't forget explicit trailing slash when normalizing. Issue17324
+        trailing_slash = path.rstrip().endswith('/')
+        try:
+            path = urllib.parse.unquote(path, errors='surrogatepass')
+        except UnicodeDecodeError:
+            path = urllib.parse.unquote(path)
+        path = posixpath.normpath(path)
+        words = path.split('/')
+        words = filter(None, words)
+        path = base
+        for word in words:
+            drive, word = os.path.splitdrive(word)
+            head, word = os.path.split(word)
+            if word in (os.curdir, os.pardir): continue
+            path = os.path.join(path, word)
+        if trailing_slash:
+            path += '/' + index
+        return path
 
 # Processing
 

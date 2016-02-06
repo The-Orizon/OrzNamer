@@ -9,5 +9,6 @@
 "url": "http://127.0.0.1/title?t=",
 "tgclibin": "../../tg/bin/telegram-cli",
 "serverip": "127.0.0.1",
-"serverport": 5111
+"serverport": 5111,
+"staticdir": "../simple"
 }
