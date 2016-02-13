@@ -21,8 +21,7 @@ from itsdangerous import URLSafeTimedSerializer
 
 RE_INVALID = re.compile("[\000-\037\t\r\x0b\x0c\ufeff]")
 
-logging.basicConfig(stream=sys.stderr, format='%(asctime)s [%(name)s:%(levelname)s] %(message)s',
-                    level=logging.DEBUG if sys.argv[-1] == '-v' else logging.INFO)
+logging.basicConfig(stream=sys.stderr, format='%(asctime)s [%(name)s:%(levelname)s] %(message)s', level=logging.DEBUG if sys.argv[-1] == '-v' else logging.INFO)
 
 logger_botapi = logging.getLogger('botapi')
 logger_http = logging.getLogger('http')
@@ -272,8 +271,10 @@ def change_title(token, title):
     if uid is False:
         return 403, {'error': 'invalid token'}
     title = RE_INVALID.sub('', title).replace('\n', ' ')
-    ret = TGCLI.cmd_rename_channel('%s#id%d' % (
-        CFG.grouptype, CFG.groupid), CFG.prefix + title)
+    if len(CFG.prefix + title) > 255:
+        return 400, {'error': 'title too long'}
+    ret = TGCLI.cmd_rename_channel('%s#id%d' % (CFG.grouptype, CFG.groupid),
+                                   CFG.prefix + title)
     if ret['result'] == 'SUCCESS':
         user = STATE.members[str(uid)]
         uname = user.get('username')
